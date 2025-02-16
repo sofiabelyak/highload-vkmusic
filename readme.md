@@ -25,21 +25,23 @@ VK музыка - российский стриминговый сервис к�
 * Среднее количество новых пользователей в месяц - **1 млн** [^2]
 * Посещение с мобильных устройств - **46.2%** [^2]
 
-[![Mobile users](image.png)](https://www.similarweb.com/ru/website/music.vk.com) [^2]
+[![Mobile users](img/Device.png)](https://www.similarweb.com/ru/website/music.vk.com) [^2]
 
 
 #### Веб-трафик по странам
 
-[![Traffic by Country](image-1.png)](https://www.similarweb.com/ru/website/music.vk.com) [^2]
+[![Traffic by Country](img/Traffic_by_Country.jpg)](https://www.similarweb.com/ru/website/music.vk.com) [^2]
 
 #### Демографические показатели
 
-
 Гендерное распределение аудитории [^2]
 
-[![Demographic Indicators](image-2.png)](https://www.similarweb.com/ru/website/music.vk.com) 
+[![Demographic Indicators](img/Gender.png)](https://www.similarweb.com/ru/website/music.vk.com) 
 
 Возрастное распределение аудитории [^2]
+
+[![Demographic Indicators](img/Age.png)](https://www.similarweb.com/ru/website/music.vk.com) 
+
 
 | Возраст | % Аудитории |
 |---------|--------------|
@@ -50,9 +52,9 @@ VK музыка - российский стриминговый сервис к�
 | 55-64   | 9.60%        |
 | 65+     | 4.96%        |
 
-[![Demographic Indicators](image-3.png)](https://www.similarweb.com/ru/website/music.vk.com)
+Общая характеристика аудитории (гендер и возраст) [^2]
 
-
+[![Demographic Indicators](img/Website_Traffic.jpg)](https://www.similarweb.com/ru/website/music.vk.com) 
 
 ## Список источников
 
