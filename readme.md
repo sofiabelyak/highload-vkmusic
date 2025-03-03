@@ -301,15 +301,14 @@ VK музыка - российский стриминговый сервис к�
 
 ## Список источников
 
-[^1]: [Пресс-релиз по рез. 3 кв. и 9 мес. 2024](https://corp.vkcdn.ru/media/files/RUS_Press_Release_9M_2024.pdf)
+https://corp.vkcdn.ru/media/files/RUS_Press_Release_9M_2024.pdf
 
-[^2]: [Анализ веб-трафика music.vk.com](https://www.similarweb.com/ru/website/music.vk.com)
+https://www.similarweb.com/ru/website/music.vk.com
 
-[^3]: [Битрейт аудио для среднего качества](https://support.spotify.com/md-ru/article/high-quality-streaming/)
+https://support.spotify.com/md-ru/article/high-quality-streaming/
 
-[^4]: [Коэффициент ×2 для пика](https://habr.com/en/companies/dcmiran/articles/496542/)
+https://habr.com/en/companies/dcmiran/articles/496542/
 
-[^5]: [Spotify-аналог (метрики пользователей)](https://newsroom.spotify.com/company-info/)
+https://newsroom.spotify.com/company-info/
 
-[^6]: [Spotify-аналог (действия пользователей)](https://www.vox.com/2014/8/18/6003271/why-are-songs-3-minutes-long)
-
+https://www.vox.com/2014/8/18/6003271/why-are-songs-3-minutes-long
