@@ -412,6 +412,104 @@ RPS: 10,000.
 - L7 для API и статики (глубокая маршрутизация, терминация SSL).
 - Sidecar proxy для межсервисного взаимодействия (отказоустойчивость, автоматическое обнаружение сервисов).
 
+## 5. Логическая схема БД
+
+https://dbdiagram.io/d/67e046ac75d75cc844253ffd
+
+![Логическая схема БД](img/Untitled.svg)
+
+
+### Описание таблиц базы данных VK Музыка
+
+### Таблицы БД и их описание
+
+| Название таблицы | Назначение                          | Основные поля                                                                 | Связи                                                                 |
+|------------------|-------------------------------------|-------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| **users**        | Хранение данных пользователей       | `id` (PK), `login`, `password`, `permission`, `region`, `created_at`, `updated_at` | Один ко многим с `playlists`, `listening_history`, `favorites`, `subscriptions`, `payments` |
+| **artists**      | Хранение данных артистов            | `id` (PK), `name`, `bio`, `website_url`, `social_media_links`, `created_at`, `updated_at` | Один ко многим с `albums`, `tracks`                                         |
+| **playlists**    | Хранение плейлистов пользователей   | `id` (PK), `user_id` (FK), `name`, `description`, `cover_url`, `created_at`, `updated_at` | Один ко многим с `playlist_tracks`, `users`    |
+| **playlist_tracks** | Связь плейлистов и треков        | `playlist_id` (FK), `track_id` (FK), `added_at`                              | Многие ко многим между `playlists` и `tracks`                              |
+| **listening_history** | История прослушивания треков   | `id` (PK), `user_id` (FK), `track_id` (FK), `listened_at`                    | Один ко многим с `users` и `tracks`                                       |
+| **albums**       | Хранение данных альбомов            | `id` (PK), `title`, `release_date`, `cover_url`, `artist_id` (FK), `created_at`, `updated_at` | Один ко многим с `tracks`, `artists`        |
+| **tracks**       | Хранение данных треков              | `id` (PK), `title`, `duration`, `file_path`, `album_id` (FK), `artist_id` (FK), `cover_url`, `added_at` | Один ко многим с `playlist_tracks`, `listening_history`, `track_genres`, `albums` и `artists`|
+| **track_genres** | Связь треков и жанров               | `track_id` (FK), `genre_id` (FK)                                             | Многие ко многим между `tracks` и `genres`                                |
+| **genres**       | Хранение данных жанров              | `id` (PK), `name`                                                            | Один ко многим с `track_genres`                                           |
+| **favorites**    | Хранение избранных треков пользователей | `user_id` (FK), `track_id` (FK), `added_at`                                | Многие ко многим между `users` и `tracks`                                 |
+| **search_queries** | Хранение истории поисковых запросов | `id` (PK), `user_id` (FK), `query`, `created_at`                            | Один ко многим с `users`                                                  |
+| **recommendations** | Хранение рекомендаций треков      | `id` (PK), `user_id` (FK), `track_id` (FK), `score`, `created_at`           | Один ко многим с `users` и `tracks`                                       |
+| **subscriptions** | Хранение данных о подписках пользователей | `id` (PK), `user_id` (FK), `plan`, `start_date`, `end_date`, `status`, `created_at`, `updated_at` | Один ко многим с `users`                                                  |
+| **payments**     | Хранение данных о платежах          | `id` (PK), `user_id` (FK), `amount`, `payment_date`, `status`, `payment_method`, `transaction_id`, `created_at`, `updated_at` | Один ко многим с `users`                                                  |
+
+### Расчет размеров данных 
+
+| Название таблицы | Расчет размера строки (поля) | Размер строки | Всего строк | Размер таблицы |
+|------------------|------------------------------|---------------|-------------|----------------|
+| **users**        | 16 (id) + 50 (login) + 50 (email) + 100 (password_hash) + 4 (permission) + 4 (created_at) + 4 (updated_at) | 228 байт      | 42 млн      | ~9.1 ГБ        |
+| **artists**      | 16 (id) + 100 (name) + 500 (bio) + 100 (website_url) + 500 (social_media_links) + 4 (created_at) + 4 (updated_at) | 1,224 байт    | 1 млн       | ~1.17 ГБ       |
+| **playlists**    | 16 (id) + 16 (user_id) + 100 (name) + 500 (description) + 100 (cover_url) + 4 (created_at) + 4 (updated_at) | 740 байт      | 126 млн     | ~87.1 ГБ       |
+| **playlist_tracks** | 16 (playlist_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 500 млн     | ~16.8 ГБ       |
+| **listening_history** | 16 (id) + 16 (user_id) + 16 (track_id) + 4 (listened_at) | 52 байт       | 120 млн     | ~5.9 ГБ        |
+| **albums**       | 16 (id) + 100 (title) + 4 (release_date) + 100 (cover_url) + 16 (artist_id) + 4 (created_at) + 4 (updated_at) | 244 байт      | 10 млн      | ~2.3 ГБ        |
+| **tracks**       | 16 (id) + 100 (title) + 4 (duration) + 100 (file_path) + 16 (album_id) + 16 (artist_id) + 100 (cover_url) + 4 (added_at) | 356 байт      | 50 млн      | ~16.6 ГБ       |
+| **track_genres** | 16 (track_id) + 16 (genre_id) | 32 байт       | 100 млн     | ~3.05 ГБ       |
+| **genres**       | 16 (id) + 50 (name)           | 66 байт       | 1,000       | ~64.5 КБ       |
+| **favorites**    | 16 (user_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 50 млн      | ~1.68 ГБ       |
+| **search_queries** | 16 (id) + 16 (user_id) + 100 (query) + 4 (created_at) | 136 байт      | 50 млн      | ~6.35 ГБ       |
+| **recommendations** | 16 (user_id) + 16 (track_id) + 4 (score) + 4 (created_at) | 40 байт       | 50 млн      | ~1.86 ГБ       |
+| **subscriptions** | 16 (id) + 16 (user_id) + 50 (plan) + 4 (start_date) + 4 (end_date) + 4 (status) + 4 (created_at) + 4 (updated_at) | 102 байт      | 42 млн      | ~4.1 ГБ        |
+| **payments**     | 16 (id) + 16 (user_id) + 8 (amount) + 4 (payment_date) + 4 (status) + 50 (payment_method) + 100 (transaction_id) + 4 (created_at) + 4 (updated_at) | 206 байт      | 42 млн      | ~8.2 ГБ        |
+
+
+### Таблица нагрузки (QPS):
+Для VK Музыка рассмотрим соотношение 5:1, так как пользователи часто просматривают плейлисты, слушают музыку, но реже изменяют данные.
+
+| Таблица                | Запись (QPS) | Чтение (QPS) | Расчет (запись) | Расчет (чтение) |
+|------------------------|--------------|--------------|-----------------|-----------------|
+| **users**              | 116          | 580          | `10M × 1 / 86,400` | `116 × 5` |
+| **search_queries**     | 580          | 2,900        | `10M × 5 / 86,400` | `580 × 5` |
+| **listening_history**  | 1,388        | 6,940        | `10M × 12 / 86,400` | `1,388 × 5` |
+| **playlist_tracks**    | 116          | 580          | `10M × 1 / 86,400` | `116 × 5` |
+| **playlists**          | 16           | 80           | `10M × 0.14 / 86,400` | `16 × 5` |
+| **recommendations**    | 116          | 580          | `10M × 1 / 86,400` | `116 × 5` |
+| **subscriptions**      | 12           | 60           | `10M × 0.1 / 86,400` | `12 × 5` |
+| **payments**           | 12           | 60           | `10M × 0.1 / 86,400` | `12 × 5` |
+
+
+### Требования к консистентности
+
+1. **Уникальность ключей**:
+   - Все первичные и внешние ключи должны быть уникальными .
+
+2. **Синхронизация данных**:
+   - При изменении треков, плейлистов или пользователей данные должны синхронизироваться во всех связанных таблицах.
+
+3. **Каскадное удаление**:
+   - Удаление пользователя или трека должно каскадно удалять связанные данные.
+
+4. **Проверка целостности**:
+   - Внешние ключи должны ссылаться на существующие записи.
+  
+
+### Особенности распределения нагрузки по ключам
+
+1.  **Шардирование**:
+    - Поля `user_id` для пользователей.
+    - Поля `track_id` для треков.
+    - Поля `playlist_id` для плейлистов.
+
+2. **Репликация для чтения**:
+   - Таблицы с высокой нагрузкой на чтение (`tracks`, `playlists`, `listening_history`) реплицируются на несколько узлов.
+
+3. **Кэширование популярных данных**:
+   - Популярные треки, плейлисты и рекомендации кэшируются.
+
+4. **Распределение по времени**:
+   - Данные в `listening_history` распределяются по временным шардам .
+
+5. **Географическое распределение**:
+   - Данные распределяются по регионам на основе `region` в таблице `users`.
+
+
 ## Список источников
 
 https://corp.vkcdn.ru/media/files/RUS_Press_Release_9M_2024.pdf
@@ -425,3 +523,4 @@ https://habr.com/en/companies/dcmiran/articles/496542/
 https://newsroom.spotify.com/company-info/
 
 https://www.vox.com/2014/8/18/6003271/why-are-songs-3-minutes-long
+
