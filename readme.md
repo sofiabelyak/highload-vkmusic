@@ -447,17 +447,63 @@ https://dbdiagram.io/d/67e046ac75d75cc844253ffd
 | **users**        | 16 (id) + 50 (login) + 50 (email) + 100 (password_hash) + 4 (permission) + 4 (created_at) + 4 (updated_at) | 228 байт      | 42 млн      | ~9.1 ГБ        |
 | **artists**      | 16 (id) + 100 (name) + 500 (bio) + 100 (website_url) + 500 (social_media_links) + 4 (created_at) + 4 (updated_at) | 1,224 байт    | 1 млн       | ~1.17 ГБ       |
 | **playlists**    | 16 (id) + 16 (user_id) + 100 (name) + 500 (description) + 100 (cover_url) + 4 (created_at) + 4 (updated_at) | 740 байт      | 126 млн     | ~87.1 ГБ       |
-| **playlist_tracks** | 16 (playlist_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 500 млн     | ~16.8 ГБ       |
-| **listening_history** | 16 (id) + 16 (user_id) + 16 (track_id) + 4 (listened_at) | 52 байт       | 120 млн     | ~5.9 ГБ        |
+| **playlist_tracks** | 16 (playlist_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 1,26 млрд     | ~ 45.36 ГБ      |
+| **listening_history** | 16 (id) + 16 (user_id) + 16 (track_id) + 4 (listened_at) | 52 байт       | 8.4 млрд    | ~ 436.8 Гб        |
 | **albums**       | 16 (id) + 100 (title) + 4 (release_date) + 100 (cover_url) + 16 (artist_id) + 4 (created_at) + 4 (updated_at) | 244 байт      | 10 млн      | ~2.3 ГБ        |
 | **tracks**       | 16 (id) + 100 (title) + 4 (duration) + 100 (file_path) + 16 (album_id) + 16 (artist_id) + 100 (cover_url) + 4 (added_at) | 356 байт      | 50 млн      | ~16.6 ГБ       |
 | **track_genres** | 16 (track_id) + 16 (genre_id) | 32 байт       | 100 млн     | ~3.05 ГБ       |
 | **genres**       | 16 (id) + 50 (name)           | 66 байт       | 1,000       | ~64.5 КБ       |
-| **favorites**    | 16 (user_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 50 млн      | ~1.68 ГБ       |
+| **favorites**    | 16 (user_id) + 16 (track_id) + 4 (added_at) | 36 байт       | 500 млн      | ~16.8 ГБ (10 треков в среднем в избранном у пользователя по данным SimilarWeb)      |
 | **search_queries** | 16 (id) + 16 (user_id) + 100 (query) + 4 (created_at) | 136 байт      | 50 млн      | ~6.35 ГБ       |
 | **recommendations** | 16 (user_id) + 16 (track_id) + 4 (score) + 4 (created_at) | 40 байт       | 50 млн      | ~1.86 ГБ       |
 | **subscriptions** | 16 (id) + 16 (user_id) + 50 (plan) + 4 (start_date) + 4 (end_date) + 4 (status) + 4 (created_at) + 4 (updated_at) | 102 байт      | 42 млн      | ~4.1 ГБ        |
 | **payments**     | 16 (id) + 16 (user_id) + 8 (amount) + 4 (payment_date) + 4 (status) + 50 (payment_method) + 100 (transaction_id) + 4 (created_at) + 4 (updated_at) | 206 байт      | 42 млн      | ~8.2 ГБ        |
+
+#### Примечание
+
+##### 1. **Таблица `recommendations`**
+- **Создание**:  
+  Таблица инициализируется при запуске системы.
+- **Генерация рекомендаций**:
+  - **Источники данных**:  
+    Используются таблицы:
+    - `listening_history` (история прослушиваний),
+    - `favorites` (понравившиеся треки),
+    - `playlist_tracks` (треки из плейлистов).
+  - **Процесс**:  
+    1. Формируется "профиль интересов" пользователя.  
+    2. ML-модель вычисляет `score` для непрослушанных треков.  
+    3. Топ-5 треков в день с `score > 0.8` записываются в таблицу.
+- **Обновление и очистка**:  
+  - Ежедневно удаляются устаревшие рекомендации.  
+  - Добавляется **50 млн новых записей/день** (DAU × рекомендации на пользователя).  
+
+---
+##### 2. **Таблица `listening_history*`**
+- Реализован механизм FIFO (First In - First Out):
+   - При добавлении нового трека удаляется самый старый, если достигнут лимит в 200 треков [Официальный пост VK](https://vk.com/wall-2158488_630793)
+- **Расчет объема**:  
+  - Общее количество записей:  
+    ```math
+    42\ \text{млн пользователей} \times 200\ \text{треков} = 8.4\ \text{млрд записей}.
+    ```  
+  - Объем данных:  
+    ```math
+      8.4\ \text{млрд} \times 52\ \text{байта} = 436.8\ \text{ГБ}.
+    ```  
+---
+##### 3. **Таблица `playlist_tracks`**
+- **Расчет объема**:  
+  - Среднее значение: **10 треков/плейлист**.  
+  - Общее количество записей:  
+    ```math
+    126\ \text{млн плейлистов} \times 10\ \text{треков} = 1.26\ \text{млрд записей}.
+    ```  
+  - Объем данных:  
+    ```math
+    1.26\ \text{млрд} \times 36\ \text{байт} = 45.36\ \text{ГБ}.
+    ```  
+
 
 
 ### Таблица нагрузки (QPS) по таблицам
@@ -502,44 +548,217 @@ https://dbdiagram.io/d/67e046ac75d75cc844253ffd
     - Поля `user_id` для пользователей.
     - Поля `track_id` для треков.
     - Поля `playlist_id` для плейлистов.
-
 2. **Репликация для чтения**:
    - Таблицы с высокой нагрузкой на чтение (`tracks`, `playlists`, `listening_history`) реплицируются на несколько узлов.
 
 3. **Кэширование популярных данных**:
    - Популярные треки, плейлисты и рекомендации кэшируются.
 
-4. **Распределение по времени**:
-   - Данные в `listening_history` распределяются по временным шардам .
 
 ## 6. Физическая схема БД
 
 ![Физическая схема БД](img/bd.svg)
 
 #### Денормализация данных:
-- Добавлены `artist_name`, `album_title` в таблицы `tracks`, `favorites`, `recommendations` - Снижение нагрузки за счет уменьшения JOIN-операций
-- Дублирование ключевых данных в `listening_history` (`track_title`, `artist_name`) - Ускорение аналитических запросов.
+1. **Дублирование ключевых полей**:
+   - `artist_name` и `album_title` в таблице `tracks` - уменьшение JOIN-операций при частых запросах,
+   - Жанры теперь хранятся как строки в таблицах `artists`, `albums` и `tracks`.
+
+2. **Оптимизированная история прослушиваний**:
+   - Упрощенная структура `listening_history` без дублирования данных,
+   - Составные индексы для быстрого доступа к истории по пользователю и дате.
+
+3. **Избранное**:
+   - Минималистичная структура `favorites` (только user_id + track_id),
+   - Индексы для быстрого поиска по пользователю и треку.
 
 #### Агрегация данных и счетчики:
-- `track_count`/`album_count` для артистов  
-- `total_duration` в плейлистах  
-- `total_listening_time` у пользователей - Мгновенный доступ к статистике без вычислений.
+- `track_count`/`album_count` для артистов,  
+- `total_duration` в плейлистах,  
+- `total_listening_time` у пользователей - мгновенный доступ к статистике без вычислений.
 
 #### Аналитика и мониторинг:
-- Новая таблица `cached_analytics`- Предрасчет ключевых метрик (ежедневно/еженедельно).
-- Поле `context` в `listening_history`- Анализ источников прослушивания (плейлист, поиск, рекомендации).
-- `popularity_score` у артистов - Для персонализации рекомендаций.
+- Новая таблица `cached_analytics`- Предрасчет ключевых метрик для быстрой аналитики с целью:
+   - Ускорения формирования отчетов
+   - Снижения нагрузки на оперативные БД
+   - Обеспечения мгновенного доступа к агрегированным данным
+      | Поле             | Тип данных       | Описание                                                                 |
+      |------------------|------------------|--------------------------------------------------------------------------|
+      | `id`             | SERIAL           | Первичный ключ (автоинкремент)                                          |
+      | `metric_name`    | VARCHAR(50)      | Название метрики (top_tracks, user_activity и т.д.)                     |
+      | `metric_value`   | JSONB            | Значения метрик в JSON-формате                                          |
+      | `period`         | VARCHAR(10)      | Период агрегации: daily/weekly/monthly                                  |
+      | `calculated_at`  | TIMESTAMPTZ      | Время последнего расчета метрики                                        |
+      | `expiration_time`| TIMESTAMPTZ      | Время автоматической инвалидации записи                                 |
+      | `region`         | VARCHAR(20)      | Региональная привязка данных (необязательно)                              |
+
+- Поле `context` в `listening_history`- анализ источников прослушивания (плейлист, поиск, рекомендации),
+- `popularity_score` у артистов - для персонализации рекомендаций.
+
+####  Управление подписками и платежами
+   - Поле `features` в формате JSON для хранения особенностей тарифа,
+   - Индексы для управления автоматическим продлением,
+   - Подробная таблица `payments` с историей статусов.
 
 #### Управление контентом:
 - `is_explicit` - фильтрация контента  
 - `is_public` - настройки приватности плейлистов  
-- JSON-поля (`social_media_links`, `favorite_genres`).
 
 #### Обеспечение целостности:
 - Автоматические `created_at`/`updated_at`.
 - Каскадные обновления/ удаления для связанных данных.
+- Индексы для аналитических запросов
+     - `play_count` в треках
+     - `release_date` в альбомах
+     - `last_listened_at` у пользователей
+     - `payment_date` в платежах
+
+####  Первичные ключи
+
+| Таблица              | Название ПК | Поля ПК       |
+|----------------------|---------------------------|-----------------------------|
+| users                | pk_users                  | id                          |
+| artists              | pk_artists                | id                          |
+| albums               | pk_albums                 | id                          |
+| tracks               | pk_tracks                 | id                          |
+| playlists            | pk_playlists              | id                          |
+| playlist_tracks      | pk_playlist_tracks        | (playlist_id, track_id)     |
+| listening_history    | pk_listening_history      | (user_id, listened_at)      |
+| favorites           | pk_favorites             | (user_id, track_id)         |
+| cached_analytics     | pk_cached_analytics       | id                          |
+| subscriptions        | pk_subscriptions          | id                          |
+| payments             | pk_payments               | id                          |
+
+#### Вторичные индексы
+
+| Таблица              | Название индекса                          | Поля индекса                          | Назначение |
+|----------------------|------------------------------------------|---------------------------------------|------------|
+| users                | idx_users_login                          | login                                 | Уникальный поиск по логину |
+| users                | idx_users_permission_region              | (permission, region)                 | Фильтрация по правам и региону |
+| users                | idx_users_last_listened                  | last_listened_at                     | Поиск по последней активности |
+| artists              | idx_artists_name                         | name                                  | Поиск по имени исполнителя |
+| artists              | idx_artists_popularity                   | popularity_score                     | Сортировка по популярности |
+| artists              | idx_artists_genres                       | genres                                | Фильтрация по жанрам |
+| artists              | idx_artists_updated                      | updated_at                           | Поиск по дате обновления |
+| albums               | idx_albums_title                         | title                                 | Поиск по названию альбома |
+| albums               | idx_albums_artist                        | artist_id                            | Фильтрация по исполнителю |
+| albums               | idx_albums_artist_release                | (artist_id, release_date)            | Сортировка по дате выхода |
+| albums               | idx_albums_genre                         | genre                                 | Фильтрация по жанру |
+| albums               | idx_albums_release_date                  | release_date                         | Сортировка по дате релиза |
+| tracks               | idx_tracks_title                         | title                                 | Поиск по названию трека |
+| tracks               | idx_tracks_artist                        | artist_id                            | Фильтрация по исполнителю |
+| tracks               | idx_tracks_album                         | album_id                             | Фильтрация по альбому |
+| tracks               | idx_tracks_artist_plays                  | (artist_id, play_count)              | Популярные треки артиста |
+| tracks               | idx_tracks_duration                      | duration                              | Фильтрация по длительности |
+| tracks               | idx_tracks_genre                         | genre                                 | Фильтрация по жанру |
+| tracks               | idx_tracks_search                        | (title, artist_name)                 | Комплексный поиск |
+| tracks               | idx_tracks_play_count                    | play_count                           | Сортировка по популярности |
+| playlists            | idx_playlists_user                       | user_id                              | Плейлисты пользователя |
+| playlists            | idx_playlists_user_public                | (user_id, is_public)                | Фильтрация приватных |
+| playlists            | idx_playlists_search                     | (name, description)                 | Поиск по названию |
+| playlists            | idx_playlists_last_added                 | last_added_at                        | Сортировка по дате |
+| playlist_tracks      | idx_playlist_tracks_order                | (playlist_id, position)              | Порядок треков |
+| playlist_tracks      | idx_playlist_tracks_track                | track_id                             | Поиск по трекам |
+| playlist_tracks      | idx_playlist_tracks_added                | added_at                             | Сортировка по дате |
+| listening_history    | idx_history_track                        | track_id                             | Анализ популярности |
+| listening_history    | idx_history_context                      | context                              | Анализ источников |
+| listening_history    | idx_history_user_track                   | (user_id, track_id)                  | История по треку |
+| favorites            | idx_favorites_user_time                  | (user_id, added_at)                  | Сортировка избранного |
+| favorites            | idx_favorites_track                      | track_id                             | Поиск по трекам |
+| cached_analytics     | idx_cached_analytics_name_period         | (metric_name, period)                | Уникальные метрики |
+| cached_analytics     | idx_cached_analytics_expiration          | expiration_time                      | Очистка кеша |
+| cached_analytics     | idx_cached_analytics_calculated          | calculated_at                        | Сортировка расчетов |
+| subscriptions        | idx_subscriptions_user                   | user_id                              | Подписки пользователя |
+| subscriptions        | idx_subscriptions_status_date            | (status, end_date)                   | Активные подписки |
+| subscriptions        | idx_subscriptions_plan_type              | plan_type                            | Фильтрация по типу |
+| subscriptions        | idx_subscriptions_renewal                | (auto_renewal, end_date)             | Автопродление |
+| payments             | idx_payments_user                        | user_id                              | Платежи пользователя |
+| payments             | idx_payments_subscription                | subscription_id                      | Платежи по подписке |
+| payments             | idx_payments_status_date                 | (status, payment_date)               | Анализ платежей |
+| payments             | idx_payments_transaction                 | transaction_id                       | Уникальные транзакции |
+| payments             | idx_payments_invoice                     | invoice_id                           | Уникальные инвойсы |
+| payments             | idx_payments_date                        | payment_date                         | Сортировка по дате |
 
 
+#### Шардирование
+
+- Таблица favorites шардируется по user_id (так как запросы чаще идут по пользователю).
+
+   Для выборки избранных треков:
+   1. Сначала получаем track_id из favorites по user_id (локальный шард).
+   2. Затем собираем данные треков из разных шардов (по track_id).
+   3. Для ускорения — кешируем список track_id в Redis.
+
+- Таблица playlists шардируется по user_id. Таблица playlist_tracks (связь плейлистов и треков) шардируется по playlist_id.
+
+   Запрос выполняется в два этапа:
+   1. Получаем метаданные плейлиста из playlists.
+   2. Получаем треки через playlist_tracks с join на tracks.
+   Для горячих плейлистов — кеш в Redis.
+
+
+- Таблица listening_history шардируется по двум ключам: user_id + временной диапазон (например, по месяцам).
+
+  1. Для старых данных:
+   - Активные данные (<3 мес.). Хранятся в Cassandra с TTL (TTL-индекс (expiration_time), автоматически удаляющий старые записи).
+   - Холодные данные (3 - 24 мес.), хранятся в ClickHouse.
+  2. Для новых пользователей:
+   - Возвращаем пустую историю.
+
+#### Выбор базы данных
+
+Для VK Музыка предлагается использовать комбинацию из нескольких СУБД, оптимально подходящих для разных типов данных и нагрузок:
+
+#### PostgreSQL - основная реляционная БД для хранения структурированных данных.
+**Обоснование выбора**:
+- Полная поддержка платежных транзакций,
+- Широкие возможности индексирования,
+- Репликация и шардирование.
+
+**Для каких таблиц**:
+- `users`, `artists`, `albums`, `playlists`, `subscriptions`, `payments`
+
+#### Cassandra - хранение истории прослушиваний и аналитических данных.
+**Обоснование выбора**:
+- Линейная масштабируемость для записи,
+- Эффективное хранение временных рядов (прослушивания по времени).
+- Поддержка TTL для автоматического удаления старых данных.
+
+**Для каких таблиц**:
+- `listening_history` (первичное хранение)
+- `cached_analytics` (промежуточные результаты)
+
+#### ClickHouse - аналитика и отчетность.
+**Обоснование выбора**:
+- Высокая скорость агрегации (анализ популярности треков),
+- Эффективное сжатие данных (экономия на хранении истории),
+- Поддержка временных рядов (анализ активности по часам/дням).
+
+**Для каких данных**:
+- Агрегированная статистика прослушиваний,
+- Ежедневные/еженедельные отчеты,
+- Персонализированные рекомендации.
+
+####  Redis - кэширование и быстрый доступ.  
+**Обоснование выбора**:
+- Кэш популярных треков и плейлистов,
+- Сессии пользователей,
+- Счетчики проигрываний.
+
+**Для каких данных**:
+- Сессионные данные,
+- Рейтинги и чарты.
+
+## Сводная таблица репликации
+
+| Компонент            | Таблицы                     | Тип репликации   | Кол-во реплик | Расположение                          | Особенности |
+|----------------------|-----------------------------|------------------|---------------|---------------------------------------|-------------|
+| **Пользователи**     | users             | Синхронная       | 3 (2 sync + 1 async)              | Москва (основная), Минск, Екатеринбург | Шардирование |
+| **Платежи**         | payments, transactions      | Синхронная       | 5 (2 sync + 2 async + 1 arbiter)            | Москва, Минск, СПб, Екатеринбург, Алматы | Двойное подтверждение операций |
+| **Сессии**          | user_sessions               | Асинхронная      | 4             | Все ДЦ                                | Цепочная репликация |
+| **История прослушиваний** | listening_history | Асинхронная  | 6             | Москва(3), Минск(2), Алматы(1)       | Автоматическое удаление старых данных (TTL 3 месяца) |
+| **Метаданные**      | tracks, albums, artists     | Синхронная       | 3             | Москва (основная), Минск, Екатеринбург | Шардирование по id|
+| **Плейлисты**       | playlists, playlist_tracks  | Синхронная       | 4             | Москва (основная), Минск, Екатеринбург, Новосибирск | Репликация по шардам |
 
 
 ## Список источников
@@ -556,3 +775,4 @@ https://newsroom.spotify.com/company-info/
 
 https://www.vox.com/2014/8/18/6003271/why-are-songs-3-minutes-long
 
+https://vk.com/wall-2158488_630793
