@@ -788,7 +788,7 @@ https://dbdiagram.io/d/67e046ac75d75cc844253ffd
 
 ## 10. Cхема данных
 
-![схема](img/schema.png)
+![схема](img/schema.jpeg)
 
 ### Пояснения к схеме архитектуры
 
